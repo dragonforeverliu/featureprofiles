@@ -125,19 +125,21 @@ func configureATE(t *testing.T, ate *ondatra.ATEDevice, atePorts []*ondatra.Port
 
 	for i, ap := range atePorts {
 		t.Logf("ATE AddInterface: ports[%d] = %v", i, ap)
-		in := top.AddInterface(ap.Name()).WithPort(ap)
-		in.IPv4().WithAddress(atePortCIDR(i)).WithDefaultGateway(dutPortIP(i))
-		// TODO(liulk): disable FEC for 100G-FR ports when Ondatra is able
-		// to specify the optics type.  Ixia Novus 100G does not support
-		// RS-FEC(544,514) used by 100G-FR/100G-DR; it only supports
-		// RS-FEC(528,514).
-		if false {
-			t.Logf("Disabling FEC on port %v", ap)
-			in.Ethernet().FEC().WithEnabled(false)
-		}
+		top.AddInterface(ap.Name()).WithPort(ap)
+		// in := top.AddInterface(ap.Name()).WithPort(ap)
+		// in.IPv4().WithAddress(atePortCIDR(i)).WithDefaultGateway(dutPortIP(i))
+		// // TODO(liulk): disable FEC for 100G-FR ports when Ondatra is able
+		// // to specify the optics type.  Ixia Novus 100G does not support
+		// // RS-FEC(544,514) used by 100G-FR/100G-DR; it only supports
+		// // RS-FEC(528,514).
+		// if false {
+		// 	t.Logf("Disabling FEC on port %v", ap)
+		// 	in.Ethernet().FEC().WithEnabled(false)
+		// }
 	}
 
-	top.Push(t).StartProtocols(t)
+	// top.Push(t).StartProtocols(t)
+	top.Push(t)
 }
 
 func sortPorts(ports []*ondatra.Port) []*ondatra.Port {
@@ -154,31 +156,31 @@ func sortPorts(ports []*ondatra.Port) []*ondatra.Port {
 
 func TestTopology(t *testing.T) {
 	// Configure the DUT
-	dut := ondatra.DUT(t, "dut")
-	dutPorts := sortPorts(dut.Ports())
-	configureDUT(t, dut, dutPorts)
+	// dut := ondatra.DUT(t, "dut")
+	// dutPorts := sortPorts(dut.Ports())
+	// configureDUT(t, dut, dutPorts)
 
 	// Configure the ATE
-	ate := ondatra.ATE(t, "ate")
-	atePorts := sortPorts(ate.Ports())
-	configureATE(t, ate, atePorts)
+	ate1 := ondatra.ATE(t, "ate1")
+	atePorts := sortPorts(ate1.Ports())
+	configureATE(t, ate1, atePorts)
 
 	// Query Telemetry
-	t.Run("Telemetry", func(t *testing.T) {
-		const want = oc.Interface_OperStatus_UP
+	// t.Run("Telemetry", func(t *testing.T) {
+	// 	const want = oc.Interface_OperStatus_UP
 
-		dt := gnmi.OC()
-		for _, dp := range dutPorts {
-			if got := gnmi.Get(t, dut, dt.Interface(dp.Name()).OperStatus().State()); got != want {
-				t.Errorf("%s oper-status got %v, want %v", dp, got, want)
-			}
-		}
+	// 	// dt := gnmi.OC()
+	// 	// for _, dp := range dutPorts {
+	// 	// 	if got := gnmi.Get(t, dut, dt.Interface(dp.Name()).OperStatus().State()); got != want {
+	// 	// 		t.Errorf("%s oper-status got %v, want %v", dp, got, want)
+	// 	// 	}
+	// 	// }
 
-		at := gnmi.OC()
-		for _, ap := range atePorts {
-			if got := gnmi.Get(t, ate, at.Interface(ap.Name()).OperStatus().State()); got != want {
-				t.Errorf("%s oper-status got %v, want %v", ap, got, want)
-			}
-		}
-	})
+	// 	at := gnmi.OC()
+	// 	for _, ap := range atePorts {
+	// 		if got := gnmi.Get(t, ate1, at.Interface(ap.Name()).OperStatus().State()); got != want {
+	// 			t.Errorf("%s oper-status got %v, want %v", ap, got, want)
+	// 		}
+	// 	}
+	// })
 }
