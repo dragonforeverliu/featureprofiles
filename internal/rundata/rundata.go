@@ -58,7 +58,7 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/golang/glog"
+	//log "github.com/golang/glog"
 	mpb "github.com/openconfig/featureprofiles/proto/metadata_go_proto"
 	"github.com/openconfig/ondatra/binding"
 	"google.golang.org/protobuf/encoding/prototext"
@@ -95,7 +95,7 @@ func topology(resv *binding.Reservation) string {
 func Properties(ctx context.Context, resv *binding.Reservation) map[string]string {
 	md, err := readFromMetadataProto()
 	if err != nil {
-		log.Errorf("Error reading metadata proto: %v", err)
+		//log.Errorf("Error reading metadata proto: %v", err)
 	}
 
 	m := make(map[string]string)
