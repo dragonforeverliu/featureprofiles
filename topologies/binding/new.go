@@ -137,6 +137,12 @@ func staticBinding(bindingFile string) (binding.Binding, error) {
 		if ate.Otg != nil && ate.Ixnetwork != nil {
 			return nil, fmt.Errorf("otg and ixnetwork are mutually exclusive, please configure one of them in ate %s binding", ate.Name)
 		}
+		if ate.Otg != nil && ate.Stcagent != nil {
+			return nil, fmt.Errorf("otg and stcagent are mutually exclusive, please configure one of them in ate %s binding", ate.Name)
+		}
+		if ate.Ixnetwork != nil && ate.Stcagent != nil {
+			return nil, fmt.Errorf("Ixnetwork and stcagent are mutually exclusive, please configure one of them in ate %s binding", ate.Name)
+		}
 	}
 	return &staticBind{
 		Binding:    nil,

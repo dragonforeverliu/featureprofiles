@@ -139,6 +139,7 @@ func configureATE(t *testing.T, ate *ondatra.ATEDevice, atePorts []*ondatra.Port
 	}
 
 	// top.Push(t).StartProtocols(t)
+	t.Logf("top is %s", top.String())
 	top.Push(t)
 }
 

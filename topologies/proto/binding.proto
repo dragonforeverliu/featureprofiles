@@ -84,6 +84,9 @@ message Device {
 
   // Dial options for OTG Ixia-C (HW Only).
   Options otg = 18;
+
+  // Dial options for stcagent (ATE Only).
+  Options stcagent = 19;
 }
 
 // Dial options.

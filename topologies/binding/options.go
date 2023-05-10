@@ -28,6 +28,7 @@ import (
 
 	bindpb "github.com/openconfig/featureprofiles/topologies/proto/binding"
 	"github.com/openconfig/ondatra/binding/ixweb"
+	"github.com/openconfig/ondatra/binding/stcweb"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 	"google.golang.org/grpc"
@@ -174,6 +175,22 @@ func (d *dialer) newIxWebClient(ctx context.Context) (*ixweb.IxWeb, error) {
 	return ixw, nil
 }
 
+// newIxWebClient makes an StcWeb session using the binding options.
+func (d *dialer) newStcWebClient(ctx context.Context) (*stcweb.StcWeb, error) {
+	hc := d.newHTTPClient()
+	username := d.GetUsername()
+	password := d.GetPassword()
+	if username == "" && password == "" {
+		username = "admin"
+		password = "admin"
+	}
+	w, err := stcweb.Connect(ctx, d.Target, stcweb.WithHTTPClient(hc), stcweb.WithLogin(username, password))
+	if err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
 // merge creates a dialer by combining one or more options.
 func merge(bopts ...*bindpb.Options) dialer {
 	result := &bindpb.Options{}
@@ -304,4 +321,13 @@ func (r *resolver) ixnetwork(ateName string) (dialer, error) {
 	}
 	targetOptions := &bindpb.Options{Target: ate.Name}
 	return merge(targetOptions, r.Options, ate.Options, ate.Ixnetwork), nil
+}
+
+func (r *resolver) stcagent(ateName string) (dialer, error) {
+	ate := r.ateByName(ateName)
+	if ate == nil {
+		return dialer{nil}, fmt.Errorf("ate name %q is missing from the binding", ateName)
+	}
+	targetOptions := &bindpb.Options{Target: ate.Name}
+	return merge(targetOptions, r.Options, ate.Options, ate.Stcagent), nil
 }
