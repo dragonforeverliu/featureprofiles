@@ -20,7 +20,7 @@ ates {
   stcagent {
     # Change this to the Web UI hostname, if it differs from the Ixia
     # chassis name.
-    target: "10.61.37.199:8666"
+    target: "10.61.37.199:8888"
     skip_verify: true
   }
 
@@ -40,7 +40,7 @@ ates {
   stcagent {
     # Change this to the Web UI hostname, if it differs from the Ixia
     # chassis name.
-    target: "10.61.37.199:8666"
+    target: "10.61.37.199:8888"
     skip_verify: true
   }
 
