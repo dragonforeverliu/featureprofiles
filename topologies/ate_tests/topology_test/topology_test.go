@@ -152,6 +152,13 @@ func configureATEwithTraffic(t *testing.T) {
 	ate1.Traffic().Start(t, flow1)
 	time.Sleep(10 * time.Second)
 	ate1.Traffic().Stop(t)
+
+	// disbale a port
+	ate1.Actions().
+		NewSetPortState().
+		WithPort(ate1_port1).
+		WithEnabled(false).
+		Send(t)
 }
 
 func configureATE(t *testing.T) {
