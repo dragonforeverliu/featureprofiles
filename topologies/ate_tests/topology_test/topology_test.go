@@ -161,6 +161,18 @@ func configureATEwithTraffic(t *testing.T) {
 		Send(t)
 }
 
+func configureATETopo(t *testing.T) {
+	// topology 1
+	ate1 := ondatra.ATE(t, "ate1")
+	ate1_port1 := ate1.Port(t, "port1")
+	top1 := ate1.Topology().New()
+	if1 := top1.AddInterface(ate1_port1.Name()).WithPort(ate1_port1)
+	if1.IPv4().WithAddress(atePortCIDR(0)).WithDefaultGateway(dutPortIP(0))
+
+	t.Logf("top1 is %s", top1.String())
+	top1.Push(t).StartProtocols(t)
+}
+
 func configureATE(t *testing.T) {
 	ate1 := ondatra.ATE(t, "ate1")
 	atePorts := sortPorts(ate1.Ports())
@@ -206,7 +218,8 @@ func TestTopology(t *testing.T) {
 
 	// Configure the ATE
 	// configureATE(t)
-	configureATEwithTraffic(t)
+	// configureATEwithTraffic(t)
+	configureATETopo(t)
 
 	// Query Telemetry
 	// t.Run("Telemetry", func(t *testing.T) {
