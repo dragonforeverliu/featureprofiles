@@ -434,9 +434,9 @@ func (b *staticBind) releaseSessions(ctx context.Context) error {
 			}
 			sate := ate.(*staticATE)
 			if sate.stcsess != nil && dialer.SessionId == 0 {
-				if err := sate.stcweb.StcAgent().DeleteSession(ctx, sate.stcsess.ID()); err != nil {
+				if err := sate.stcweb.StcAgent().DeleteSession(ctx); err != nil {
 					return err
-				}
+				} else {break}
 			}
 		}
 
