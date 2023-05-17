@@ -9,6 +9,9 @@ ates {
   ports {
     id: "port1"
   }
+  ports {
+    id: "port2"
+  }
 }
 
 ates {

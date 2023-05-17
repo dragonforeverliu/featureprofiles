@@ -30,6 +30,10 @@ ates {
     id: "port1"
     name: "1/1"  # Change this to the actual port name.
   }
+  ports {
+    id: "port2"
+    name: "1/2"  # Change this to the actual port name.
+  }
 }
 
 ates {
