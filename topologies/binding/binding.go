@@ -436,7 +436,7 @@ func (b *staticBind) releaseSessions(ctx context.Context) error {
 			if sate.stcsess != nil && dialer.SessionId == 0 {
 				if err := sate.stcweb.StcAgent().DeleteSession(ctx); err != nil {
 					return err
-				} else {break}
+				}
 			}
 		}
 
