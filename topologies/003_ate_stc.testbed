@@ -1,0 +1,20 @@
+# proto-file: github.com/openconfig/ondatra/blob/main/proto/testbed.proto
+# proto-message: ondatra.Testbed
+
+# This testbed provides 2 links between a DUT and an ATE connected
+# pairwise.
+
+ates {
+  id: "ate1"
+  ports {
+    id: "port1"
+  }
+  ports {
+    id: "port2"
+  }
+}
+
+links {
+  a: "ate1:port1"
+  b: "ate1:port2"
+}

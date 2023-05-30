@@ -222,25 +222,30 @@ func TestTopology(t *testing.T) {
 
 	// Configure the ATE
 	// configureATE(t)
-	configureATEwithTraffic(t)
+	// configureATEwithTraffic(t)
 	// configureATETopo(t)
 
 	// Query Telemetry
-	// t.Run("Telemetry", func(t *testing.T) {
-	// 	const want = oc.Interface_OperStatus_UP
+	t.Run("Telemetry", func(t *testing.T) {
+		const want = oc.Interface_OperStatus_UP
 
-	// 	// dt := gnmi.OC()
-	// 	// for _, dp := range dutPorts {
-	// 	// 	if got := gnmi.Get(t, dut, dt.Interface(dp.Name()).OperStatus().State()); got != want {
-	// 	// 		t.Errorf("%s oper-status got %v, want %v", dp, got, want)
-	// 	// 	}
-	// 	// }
+		// dt := gnmi.OC()
+		// for _, dp := range dutPorts {
+		// 	if got := gnmi.Get(t, dut, dt.Interface(dp.Name()).OperStatus().State()); got != want {
+		// 		t.Errorf("%s oper-status got %v, want %v", dp, got, want)
+		// 	}
+		// }
 
-	// 	at := gnmi.OC()
-	// 	for _, ap := range atePorts {
-	// 		if got := gnmi.Get(t, ate1, at.Interface(ap.Name()).OperStatus().State()); got != want {
-	// 			t.Errorf("%s oper-status got %v, want %v", ap, got, want)
-	// 		}
-	// 	}
-	// })
+		ate1 := ondatra.ATE(t, "ate1")
+		atePorts := sortPorts(ate1.Ports())
+
+		at := gnmi.OC()
+		for _, ap := range atePorts {
+			// gnmi.Lookup(t, ate1, at.Interface(ap.Name()).Cpu().State())
+
+			if got := gnmi.Get(t, ate1, at.Interface(ap.Name()).OperStatus().State()); got != want {
+				t.Errorf("%s oper-status got %v, want %v", ap, got, want)
+			}
+		}
+	})
 }

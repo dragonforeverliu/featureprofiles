@@ -5,6 +5,7 @@ go test -c
 ./topology_test.test -testbed ../../001_ate_stc.testbed -binding ../../001_ate_stc.binding
 ./topology_test.test -testbed ../../002_ate_stc.testbed -binding ../../002_ate_stc.binding
 ./topology_test.test -testbed ../../002_ate_stc.testbed -binding ../../002_ate_stc.binding -alsologtostderr
+./topology_test.test -testbed ../../003_ate_stc.testbed -binding ../../003_ate_stc.binding -alsologtostderr
 
 3. run test using go test command 
 go test -testbed ../../002_ate_stc.testbed -binding ../../002_ate_stc.binding
