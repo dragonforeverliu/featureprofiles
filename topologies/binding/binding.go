@@ -24,6 +24,7 @@ import (
 	"github.com/open-traffic-generator/snappi/gosnappi"
 	"github.com/openconfig/ondatra/binding"
 	"github.com/openconfig/ondatra/binding/ixweb"
+	"github.com/openconfig/ondatra/binding/stcweb"
 	"google.golang.org/grpc"
 
 	bindpb "github.com/openconfig/featureprofiles/topologies/proto/binding"
@@ -55,6 +56,9 @@ type staticATE struct {
 	dev    *bindpb.Device
 	ixweb  *ixweb.IxWeb
 	ixsess *ixweb.Session
+
+	stcweb  *stcweb.StcWeb
+	stcsess *stcweb.Session
 }
 
 var _ = binding.Binding(&staticBind{})
@@ -80,7 +84,7 @@ func (b *staticBind) Reserve(ctx context.Context, tb *opb.Testbed, runTime, wait
 			return nil, err
 		}
 	}
-	if err := b.reserveIxSessions(ctx); err != nil {
+	if err := b.reserveSessions(ctx); err != nil {
 		return nil, err
 	}
 	return resv, nil
@@ -90,7 +94,7 @@ func (b *staticBind) Release(ctx context.Context) error {
 	if b.resv == nil {
 		return errors.New("no reservation")
 	}
-	if err := b.releaseIxSessions(ctx); err != nil {
+	if err := b.releaseSessions(ctx); err != nil {
 		return err
 	}
 	b.resv = nil
@@ -230,6 +234,18 @@ func (a *staticATE) DialIxNetwork(ctx context.Context) (*binding.IxNetwork, erro
 	return &binding.IxNetwork{Session: ixs}, nil
 }
 
+func (a *staticATE) DialStcAgent(ctx context.Context) (*binding.StcAgent, error) {
+	dialer, err := a.r.stcagent(a.Name())
+	if err != nil {
+		return nil, err
+	}
+	ixs, err := a.stcSession(ctx, dialer)
+	if err != nil {
+		return nil, err
+	}
+	return &binding.StcAgent{Session: ixs}, nil
+}
+
 // allerrors implements the error interface and will accumulate and
 // report all errors.
 type allerrors []error
@@ -360,7 +376,7 @@ func ports(tports []*opb.Port, bports []*bindpb.Port) (map[string]*binding.Port,
 	return portmap, nil
 }
 
-func (b *staticBind) reserveIxSessions(ctx context.Context) error {
+func (b *staticBind) reserveSessions(ctx context.Context) error {
 	ates := b.resv.ATEs
 	for _, ate := range ates {
 
@@ -368,33 +384,62 @@ func (b *staticBind) reserveIxSessions(ctx context.Context) error {
 		if bate == nil {
 			return fmt.Errorf("missing binding for ATE %q", bate.Id)
 		}
-		if bate.Ixnetwork == nil {
-			continue
+		if bate.Ixnetwork != nil {
+			dialer, err := b.r.ixnetwork(ate.Name())
+			if err != nil {
+				return err
+			}
+			if _, err := ate.(*staticATE).ixSession(ctx, dialer); err != nil {
+				return err
+			}
 		}
 
-		dialer, err := b.r.ixnetwork(ate.Name())
-		if err != nil {
-			return err
+		if bate.Stcagent != nil {
+			dialer, err := b.r.stcagent(ate.Name())
+			if err != nil {
+				return err
+			}
+			if _, err := ate.(*staticATE).stcSession(ctx, dialer); err != nil {
+				return err
+			}
 		}
-		if _, err := ate.(*staticATE).ixSession(ctx, dialer); err != nil {
-			return err
-		}
+
 	}
 	return nil
 }
 
-func (b *staticBind) releaseIxSessions(ctx context.Context) error {
+func (b *staticBind) releaseSessions(ctx context.Context) error {
 	for _, ate := range b.resv.ATEs {
-		dialer, err := b.r.ixnetwork(ate.Name())
-		if err != nil {
-			return err
-		}
-		sate := ate.(*staticATE)
-		if sate.ixsess != nil && dialer.SessionId == 0 {
-			if err := sate.ixweb.IxNetwork().DeleteSession(ctx, sate.ixsess.ID()); err != nil {
+
+		bate := b.r.ateByName(ate.Name())
+		if bate.Ixnetwork != nil {
+
+			dialer, err := b.r.ixnetwork(ate.Name())
+			if err != nil {
 				return err
 			}
+			sate := ate.(*staticATE)
+			if sate.ixsess != nil && dialer.SessionId == 0 {
+				if err := sate.ixweb.IxNetwork().DeleteSession(ctx, sate.ixsess.ID()); err != nil {
+					return err
+				}
+			}
 		}
+
+		if bate.Stcagent != nil {
+
+			dialer, err := b.r.stcagent(ate.Name())
+			if err != nil {
+				return err
+			}
+			sate := ate.(*staticATE)
+			if sate.stcsess != nil && dialer.SessionId == 0 {
+				if err := sate.stcweb.StcAgent().DeleteSession(ctx); err != nil {
+					return err
+				}
+			}
+		}
+
 	}
 	return nil
 }
@@ -426,4 +471,33 @@ func (a *staticATE) ixSession(ctx context.Context, d dialer) (*ixweb.Session, er
 		}
 	}
 	return a.ixsess, nil
+}
+
+func (a *staticATE) stcWeb(ctx context.Context, d dialer) (*stcweb.StcWeb, error) {
+	if a.stcweb == nil {
+		w, err := d.newStcWebClient(ctx)
+		if err != nil {
+			return nil, err
+		}
+		a.stcweb = w
+	}
+	return a.stcweb, nil
+}
+
+func (a *staticATE) stcSession(ctx context.Context, d dialer) (*stcweb.Session, error) {
+	if a.stcsess == nil {
+		w, err := a.stcWeb(ctx, d)
+		if err != nil {
+			return nil, err
+		}
+		if d.SessionId > 0 {
+			a.stcsess, err = w.StcAgent().FetchSession(ctx, int(d.SessionId))
+		} else {
+			a.stcsess, err = w.StcAgent().NewSession(ctx, a.Name())
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	return a.stcsess, nil
 }

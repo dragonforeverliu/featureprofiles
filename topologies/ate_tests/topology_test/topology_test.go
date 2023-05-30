@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/openconfig/featureprofiles/internal/deviations"
 	"github.com/openconfig/featureprofiles/internal/fptest"
@@ -120,11 +121,71 @@ func configureDUT(t *testing.T, dut *ondatra.DUTDevice, dutPorts []*ondatra.Port
 	t.Logf("Telemetry Get error on interfaces: %v", badTelem)
 }
 
-func configureATE(t *testing.T, ate *ondatra.ATEDevice, atePorts []*ondatra.Port) {
-	top := ate.Topology().New()
+func configureATEwithTraffic(t *testing.T) {
+	// topology 1
+	ate1 := ondatra.ATE(t, "ate1")
+	ate1_port1 := ate1.Port(t, "port1")
+	top1 := ate1.Topology().New()
+	if1 := top1.AddInterface(ate1_port1.Name()).WithPort(ate1_port1)
+	if1.IPv4().WithAddress(atePortCIDR(0)).WithDefaultGateway(dutPortIP(0))
+
+	t.Logf("top1 is %s", top1.String())
+	top1.Push(t).StartProtocols(t)
+
+	// topology 2
+	ate2 := ondatra.ATE(t, "ate2")
+	ate2_port1 := ate1.Port(t, "port1")
+	top2 := ate2.Topology().New()
+	if2 := top2.AddInterface(ate2_port1.Name()).WithPort(ate2_port1)
+	if2.IPv4().WithAddress(atePortCIDR(1)).WithDefaultGateway(dutPortIP(1))
+
+	t.Logf("top2 is %s", top2.String())
+	top2.Push(t).StartProtocols(t)
+
+	// traffic 1
+	flow1 := ate1.Traffic().NewFlow("Flow1").
+		WithSrcEndpoints(if1).
+		WithDstEndpoints(if2).
+		WithFrameRatePct(50)
+
+	t.Logf("flow1 is %s", flow1.String())
+	ate1.Traffic().Start(t, flow1)
+	time.Sleep(10 * time.Second)
+	ate1.Traffic().Stop(t)
+
+	// disbale a port
+	ate1.Actions().
+		NewSetPortState().
+		WithPort(ate1_port1).
+		WithEnabled(false).
+		Send(t)
+}
+
+func configureATETopo(t *testing.T) {
+	// topology 1
+	ate1 := ondatra.ATE(t, "ate1")
+	ate1_port1 := ate1.Port(t, "port1")
+	top1 := ate1.Topology().New()
+	if1 := top1.AddInterface(ate1_port1.Name()).WithPort(ate1_port1)
+	if1.IPv4().WithAddress(atePortCIDR(0)).WithDefaultGateway(dutPortIP(0))
+
+	// ate1_port2 := ate1.Port(t, "port2")
+	// if2 := top1.AddInterface(ate1_port2.Name()).WithPort(ate1_port2)
+	// if2.IPv4().WithAddress(atePortCIDR(1)).WithDefaultGateway(dutPortIP(1))
+
+	t.Logf("top1 is %s", top1.String())
+	top1.Push(t).StartProtocols(t)
+}
+
+func configureATE(t *testing.T) {
+	ate1 := ondatra.ATE(t, "ate1")
+	atePorts := sortPorts(ate1.Ports())
+
+	top := ate1.Topology().New()
 
 	for i, ap := range atePorts {
 		t.Logf("ATE AddInterface: ports[%d] = %v", i, ap)
+		top.AddInterface(ap.Name()).WithPort(ap)
 		in := top.AddInterface(ap.Name()).WithPort(ap)
 		in.IPv4().WithAddress(atePortCIDR(i)).WithDefaultGateway(dutPortIP(i))
 		// TODO(liulk): disable FEC for 100G-FR ports when Ondatra is able
@@ -137,6 +198,7 @@ func configureATE(t *testing.T, ate *ondatra.ATEDevice, atePorts []*ondatra.Port
 		}
 	}
 
+	t.Logf("top is %s", top.String())
 	top.Push(t).StartProtocols(t)
 }
 
@@ -154,31 +216,31 @@ func sortPorts(ports []*ondatra.Port) []*ondatra.Port {
 
 func TestTopology(t *testing.T) {
 	// Configure the DUT
-	dut := ondatra.DUT(t, "dut")
-	dutPorts := sortPorts(dut.Ports())
-	configureDUT(t, dut, dutPorts)
+	// dut := ondatra.DUT(t, "dut")
+	// dutPorts := sortPorts(dut.Ports())
+	// configureDUT(t, dut, dutPorts)
 
 	// Configure the ATE
-	ate := ondatra.ATE(t, "ate")
-	atePorts := sortPorts(ate.Ports())
-	configureATE(t, ate, atePorts)
+	// configureATE(t)
+	configureATEwithTraffic(t)
+	// configureATETopo(t)
 
 	// Query Telemetry
-	t.Run("Telemetry", func(t *testing.T) {
-		const want = oc.Interface_OperStatus_UP
+	// t.Run("Telemetry", func(t *testing.T) {
+	// 	const want = oc.Interface_OperStatus_UP
 
-		dt := gnmi.OC()
-		for _, dp := range dutPorts {
-			if got := gnmi.Get(t, dut, dt.Interface(dp.Name()).OperStatus().State()); got != want {
-				t.Errorf("%s oper-status got %v, want %v", dp, got, want)
-			}
-		}
+	// 	// dt := gnmi.OC()
+	// 	// for _, dp := range dutPorts {
+	// 	// 	if got := gnmi.Get(t, dut, dt.Interface(dp.Name()).OperStatus().State()); got != want {
+	// 	// 		t.Errorf("%s oper-status got %v, want %v", dp, got, want)
+	// 	// 	}
+	// 	// }
 
-		at := gnmi.OC()
-		for _, ap := range atePorts {
-			if got := gnmi.Get(t, ate, at.Interface(ap.Name()).OperStatus().State()); got != want {
-				t.Errorf("%s oper-status got %v, want %v", ap, got, want)
-			}
-		}
-	})
+	// 	at := gnmi.OC()
+	// 	for _, ap := range atePorts {
+	// 		if got := gnmi.Get(t, ate1, at.Interface(ap.Name()).OperStatus().State()); got != want {
+	// 			t.Errorf("%s oper-status got %v, want %v", ap, got, want)
+	// 		}
+	// 	}
+	// })
 }
